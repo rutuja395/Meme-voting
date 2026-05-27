@@ -101,11 +101,12 @@
             transition: all 0.2s ease;
             color: #fff;
         }
-        .vote-btn:hover {
+        .vote-btn:hover:not(:disabled) {
             border-color: #e94560;
             transform: scale(1.05);
             background: rgba(233, 69, 96, 0.1);
         }
+        .vote-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .vote-btn.voted {
             border-color: #f5a623;
             background: rgba(245, 166, 35, 0.15);
@@ -222,9 +223,9 @@
             </div>
 
             <div class="nav-section">
-                <span></span>
+                <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)" disabled>← Prev</button>
                 <span class="counter" id="counter"></span>
-                <span></span>
+                <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">Next →</button>
             </div>
         </div>
 
@@ -271,8 +272,8 @@
         let currentIndex = 0;
         let allVotes = {};
         const VOTER_KEY = "meme_voter_id";
+        const VOTED_KEY = "voted_memes";
 
-        // Unique voter ID per browser
         function getVoterId() {
             let id = localStorage.getItem(VOTER_KEY);
             if (!id) {
@@ -282,78 +283,69 @@
             return id;
         }
 
+        function hasVoted(memeIndex) {
+            const voted = JSON.parse(localStorage.getItem(VOTED_KEY) || '{}');
+            return voted[memeIndex] === true;
+        }
+
+        function markVoted(memeIndex) {
+            const voted = JSON.parse(localStorage.getItem(VOTED_KEY) || '{}');
+            voted[memeIndex] = true;
+            localStorage.setItem(VOTED_KEY, JSON.stringify(voted));
+        }
+
         function connectSSE() {
             const es = new EventSource('/api/stream');
-
             es.onmessage = function(e) {
                 const data = JSON.parse(e.data);
-
-                if (data.type === 'init') {
-                    allVotes = data.votes;
-                    currentIndex = data.slide;
-                    if (data.showResults) {
-                        showView('results');
-                    } else {
-                        renderMeme();
-                    }
-                }
-
-                if (data.type === 'update') {
+                if (data.type === 'init' || data.type === 'update') {
                     allVotes = data.votes;
                     renderVoteButtons();
                     if (document.getElementById('results-view').style.display === 'block') {
                         renderResults();
                     }
                 }
-
-                if (data.type === 'slide') {
-                    currentIndex = data.slide;
-                    showView('vote');
-                    renderMeme();
-                }
-
-                if (data.type === 'showResults') {
-                    allVotes = data.votes;
-                    showView('results');
-                }
             };
-
             es.onerror = function() {
                 es.close();
                 setTimeout(connectSSE, 3000);
             };
         }
-
         connectSSE();
 
+        function changeSlide(dir) {
+            const newIndex = currentIndex + dir;
+            if (newIndex < 0 || newIndex >= memes.length) return;
+            currentIndex = newIndex;
+            renderMeme();
+        }
+
         function getMyVote(memeIndex) {
-            const voterId = getVoterId();
             const key = `meme_${memeIndex}`;
             if (!allVotes[key]) return null;
-            if (allVotes[key]["🙂"] && allVotes[key]["🙂"].includes(voterId)) return "🙂";
-            if (allVotes[key]["😂"] && allVotes[key]["😂"].includes(voterId)) return "😂";
+            const voterId = getVoterId();
+            if ((allVotes[key]['🙂'] || []).includes(voterId)) return '🙂';
+            if ((allVotes[key]['😂'] || []).includes(voterId)) return '😂';
             return null;
         }
 
         function getVoteCounts(memeIndex) {
             const key = `meme_${memeIndex}`;
-            if (!allVotes[key]) return { "🙂": 0, "😂": 0 };
+            if (!allVotes[key]) return { '🙂': 0, '😂': 0 };
             return {
-                "🙂": (allVotes[key]["🙂"] || []).length,
-                "😂": (allVotes[key]["😂"] || []).length
+                '🙂': (allVotes[key]['🙂'] || []).length,
+                '😂': (allVotes[key]['😂'] || []).length
             };
         }
 
         function renderMeme() {
             const meme = memes[currentIndex];
-
             const mediaContainer = document.getElementById('media-container');
             if (meme.type === 'video') {
                 mediaContainer.innerHTML = `<video controls playsinline><source src="${encodeURI(meme.file)}" type="video/mp4">Your browser does not support video.</video>`;
             } else {
                 mediaContainer.innerHTML = `<img src="${encodeURI(meme.file)}" alt="Meme by ${meme.author}" loading="lazy">`;
             }
-
             renderVoteButtons();
             updateNav();
         }
@@ -362,20 +354,25 @@
             const section = document.getElementById('vote-section');
             const myVote = getMyVote(currentIndex);
             const counts = getVoteCounts(currentIndex);
+            const voted = hasVoted(currentIndex);
 
             section.innerHTML = `
-                <button class="vote-btn ${myVote === '🙂' ? 'voted' : ''}" onclick="vote('🙂')">
+                <button class="vote-btn ${myVote === '🙂' ? 'voted' : ''}" onclick="vote('🙂')" ${voted ? 'disabled' : ''}>
                     <span class="emoji">🙂</span>
-                    <span class="label">${counts["🙂"]} vote${counts["🙂"] !== 1 ? 's' : ''}</span>
+                    <span class="label">${counts['🙂']} vote${counts['🙂'] !== 1 ? 's' : ''}</span>
                 </button>
-                <button class="vote-btn ${myVote === '😂' ? 'voted' : ''}" onclick="vote('😂')">
+                <button class="vote-btn ${myVote === '😂' ? 'voted' : ''}" onclick="vote('😂')" ${voted ? 'disabled' : ''}>
                     <span class="emoji">😂</span>
-                    <span class="label">${counts["😂"]} vote${counts["😂"] !== 1 ? 's' : ''}</span>
+                    <span class="label">${counts['😂']} vote${counts['😂'] !== 1 ? 's' : ''}</span>
                 </button>
+                ${voted ? '<div class="voted-message" style="width:100%">✓ Voted!</div>' : ''}
             `;
         }
 
         async function vote(emoji) {
+            if (hasVoted(currentIndex)) return;
+            markVoted(currentIndex);
+            renderVoteButtons();
             await fetch('/api/vote', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -386,6 +383,8 @@
         function updateNav() {
             document.getElementById('counter').textContent = `${currentIndex + 1} / ${memes.length}`;
             document.getElementById('progress').style.width = `${((currentIndex + 1) / memes.length) * 100}%`;
+            document.getElementById('prev-btn').disabled = currentIndex === 0;
+            document.getElementById('next-btn').disabled = currentIndex === memes.length - 1;
         }
 
         function showView(view) {
