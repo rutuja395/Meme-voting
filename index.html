@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Meme Voting Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #e94560, #f5a623);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        header p { color: #aaa; font-size: 1.1rem; }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #e94560, #f5a623);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+        .meme-card {
+            background: #1e2a3a;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin: 20px 0;
+            animation: slideIn 0.4s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .meme-card .author {
+            padding: 16px 20px;
+            font-size: 1rem;
+            color: #aaa;
+            border-bottom: 1px solid #2a3a4a;
+        }
+        .meme-card .author span { color: #f5a623; font-weight: 600; }
+        .meme-card .media-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+            min-height: 300px;
+            max-height: 500px;
+            overflow: hidden;
+        }
+        .meme-card .media-container img {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+        }
+        .meme-card .media-container video {
+            max-width: 100%;
+            max-height: 500px;
+        }
+        .vote-section {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 24px;
+        }
+        .vote-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: 3px solid #333;
+            border-radius: 16px;
+            padding: 20px 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #fff;
+        }
+        .vote-btn:hover {
+            border-color: #e94560;
+            transform: scale(1.05);
+            background: rgba(233, 69, 96, 0.1);
+        }
+        .vote-btn.voted {
+            border-color: #f5a623;
+            background: rgba(245, 166, 35, 0.15);
+            transform: scale(1.05);
+        }
+        .vote-btn .emoji { font-size: 3rem; }
+        .vote-btn .label { font-size: 0.9rem; color: #aaa; }
+        .nav-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .nav-btn {
+            background: linear-gradient(135deg, #e94560, #f5a623);
+            border: none;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .nav-btn:hover { transform: scale(1.03); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        .counter { color: #aaa; font-size: 1rem; }
+        .results-view { display: none; }
+        .results-view h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin: 20px 0;
+            color: #f5a623;
+        }
+        .result-item {
+            background: #1e2a3a;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-item .name { font-weight: 600; }
+        .result-item .scores {
+            display: flex;
+            gap: 16px;
+            font-size: 1.1rem;
+        }
+        .tab-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0 20px;
+        }
+        .tab-btn {
+            background: #1e2a3a;
+            border: 2px solid #333;
+            color: #aaa;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            border-color: #e94560;
+            color: #fff;
+            background: rgba(233, 69, 96, 0.15);
+        }
+        .voted-message {
+            text-align: center;
+            color: #4ecdc4;
+            font-size: 1.1rem;
+            padding: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .rank {
+            font-size: 1.5rem;
+            min-width: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎉 Meme Voting Game</h1>
+            <p>Vote for your favorites!</p>
+        </header>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="showView('vote')">🗳️ Vote</button>
+            <button class="tab-btn" onclick="showView('results')">🏆 Results</button>
+        </div>
+
+        <div id="vote-view">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+
+            <div class="meme-card" id="meme-card">
+
+                <div class="media-container" id="media-container"></div>
+                <div class="vote-section" id="vote-section"></div>
+            </div>
+
+            <div class="nav-section">
+                <span></span>
+                <span class="counter" id="counter"></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="results-view" id="results-view">
+            <h2>🏆 Top 5 Memes</h2>
+            <div id="results-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const memes = [
+            { file: "Bahubali_Jhansi Sai Anusha Ka.png", author: "Jhansi Sai Anusha Ka", type: "image" },
+            { file: "ChatGPT Image May 23, 2026, 08_35_02 PM_Heena ..png", author: "Heena", type: "image" },
+            { file: "ChatGPT Image May 23, 2026, 08_40_13 PM_Heena ..png", author: "Heena", type: "image" },
+            { file: "ChatGPT Image May 23, 2026, 09_24_15 PM_Heena ..png", author: "Heena", type: "image" },
+            { file: "ChatGPT Image May 23, 2026, 11_49_45 AM_Heena ..png", author: "Heena", type: "image" },
+            { file: "ChatGPT Image May 25, 2026, 01_50_04 PM_Heena ..png", author: "Heena", type: "image" },
+            { file: "ChatGPT Image May 25, 2026, 08_11_01 PM_Heena ..png", author: "Heena", type: "image" },
+            { file: "Meme1_Aruna_Aruna Sairam.png", author: "Aruna Sairam", type: "image" },
+            { file: "Meme_Ashutosh Jha.png", author: "Ashutosh Jha", type: "image" },
+            { file: "Meme_Nadar Senthilkumar.png", author: "Nadar Senthilkumar", type: "image" },
+            { file: "MicrosoftTeams-video_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (1)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (2)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (3)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (4)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (5)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "MicrosoftTeams-video (6)_Sanket Jagtap.mp4", author: "Sanket Jagtap", type: "video" },
+            { file: "PromptMatters_Jhansi Sai Anusha Ka.png", author: "Jhansi Sai Anusha Ka", type: "image" },
+            { file: "Rahul Malik_s Video - May 24, 2026 (1).mp4", author: "Rahul Malik", type: "video" },
+            { file: "Screenshot 2026-05-23 at 11.51.48 AM_Sanket Jagtap.png", author: "Sanket Jagtap", type: "image" },
+            { file: "Screenshot 2026-05-26 at 10.27.01 AM_Heena ..png", author: "Heena", type: "image" },
+            { file: "image (9)_Abhisek Sah.png", author: "Abhisek Sah", type: "image" },
+            { file: "meme1_Nivesh Soni.jpg", author: "Nivesh Soni", type: "image" },
+            { file: "meme2_Nivesh Soni.jpg", author: "Nivesh Soni", type: "image" },
+            { file: "meme3_Nivesh Soni.jpg", author: "Nivesh Soni", type: "image" },
+            { file: "meme_1_Abhisek Sah.png", author: "Abhisek Sah", type: "image" },
+            { file: "meme_2_Abhisek Sah.png", author: "Abhisek Sah", type: "image" },
+            { file: "meme_3_Abhisek Sah.png", author: "Abhisek Sah", type: "image" },
+            { file: "p1_Jhansi Sai Anusha Ka.png", author: "Jhansi Sai Anusha Ka", type: "image" },
+            { file: "smallIssue_Jhansi Sai Anusha Ka.png", author: "Jhansi Sai Anusha Ka", type: "image" },
+        ];
+
+        let currentIndex = 0;
+        let allVotes = {};
+        const VOTER_KEY = "meme_voter_id";
+
+        // Unique voter ID per browser
+        function getVoterId() {
+            let id = localStorage.getItem(VOTER_KEY);
+            if (!id) {
+                id = 'voter_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem(VOTER_KEY, id);
+            }
+            return id;
+        }
+
+        function connectSSE() {
+            const es = new EventSource('/api/stream');
+
+            es.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+
+                if (data.type === 'init') {
+                    allVotes = data.votes;
+                    currentIndex = data.slide;
+                    if (data.showResults) {
+                        showView('results');
+                    } else {
+                        renderMeme();
+                    }
+                }
+
+                if (data.type === 'update') {
+                    allVotes = data.votes;
+                    renderVoteButtons();
+                    if (document.getElementById('results-view').style.display === 'block') {
+                        renderResults();
+                    }
+                }
+
+                if (data.type === 'slide') {
+                    currentIndex = data.slide;
+                    showView('vote');
+                    renderMeme();
+                }
+
+                if (data.type === 'showResults') {
+                    allVotes = data.votes;
+                    showView('results');
+                }
+            };
+
+            es.onerror = function() {
+                es.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+
+        connectSSE();
+
+        function getMyVote(memeIndex) {
+            const voterId = getVoterId();
+            const key = `meme_${memeIndex}`;
+            if (!allVotes[key]) return null;
+            if (allVotes[key]["🙂"] && allVotes[key]["🙂"].includes(voterId)) return "🙂";
+            if (allVotes[key]["😂"] && allVotes[key]["😂"].includes(voterId)) return "😂";
+            return null;
+        }
+
+        function getVoteCounts(memeIndex) {
+            const key = `meme_${memeIndex}`;
+            if (!allVotes[key]) return { "🙂": 0, "😂": 0 };
+            return {
+                "🙂": (allVotes[key]["🙂"] || []).length,
+                "😂": (allVotes[key]["😂"] || []).length
+            };
+        }
+
+        function renderMeme() {
+            const meme = memes[currentIndex];
+
+            const mediaContainer = document.getElementById('media-container');
+            if (meme.type === 'video') {
+                mediaContainer.innerHTML = `<video controls playsinline><source src="${encodeURI(meme.file)}" type="video/mp4">Your browser does not support video.</video>`;
+            } else {
+                mediaContainer.innerHTML = `<img src="${encodeURI(meme.file)}" alt="Meme by ${meme.author}" loading="lazy">`;
+            }
+
+            renderVoteButtons();
+            updateNav();
+        }
+
+        function renderVoteButtons() {
+            const section = document.getElementById('vote-section');
+            const myVote = getMyVote(currentIndex);
+            const counts = getVoteCounts(currentIndex);
+
+            section.innerHTML = `
+                <button class="vote-btn ${myVote === '🙂' ? 'voted' : ''}" onclick="vote('🙂')">
+                    <span class="emoji">🙂</span>
+                    <span class="label">${counts["🙂"]} vote${counts["🙂"] !== 1 ? 's' : ''}</span>
+                </button>
+                <button class="vote-btn ${myVote === '😂' ? 'voted' : ''}" onclick="vote('😂')">
+                    <span class="emoji">😂</span>
+                    <span class="label">${counts["😂"]} vote${counts["😂"] !== 1 ? 's' : ''}</span>
+                </button>
+            `;
+        }
+
+        async function vote(emoji) {
+            await fetch('/api/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memeIndex: currentIndex, emoji, voterId: getVoterId() })
+            });
+        }
+
+        function updateNav() {
+            document.getElementById('counter').textContent = `${currentIndex + 1} / ${memes.length}`;
+            document.getElementById('progress').style.width = `${((currentIndex + 1) / memes.length) * 100}%`;
+        }
+
+        function showView(view) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (view === 'vote') {
+                document.getElementById('vote-view').style.display = 'block';
+                document.getElementById('results-view').style.display = 'none';
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            } else {
+                document.getElementById('vote-view').style.display = 'none';
+                document.getElementById('results-view').style.display = 'block';
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                renderResults();
+            }
+        }
+
+        function renderResults() {
+            const results = memes.map((meme, i) => {
+                const counts = getVoteCounts(i);
+                return { ...meme, index: i, smile: counts["🙂"], lol: counts["😂"], total: counts["🙂"] + counts["😂"] };
+            });
+
+            results.sort((a, b) => b.total - a.total);
+            const top5 = results.slice(0, 5);
+
+            const list = document.getElementById('results-list');
+            list.innerHTML = top5.map((r, rank) => {
+                const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : rank === 3 ? '4️⃣' : '5️⃣';
+                const media = r.type === 'video'
+                    ? `<video src="${encodeURI(r.file)}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;" muted></video>`
+                    : `<img src="${encodeURI(r.file)}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;">`;
+                return `
+                    <div class="result-item" style="gap:16px;">
+                        <div class="leaderboard-item">
+                            <span class="rank">${medal}</span>
+                            ${media}
+                        </div>
+                        <div class="scores">
+                            <span>🙂 ${r.smile}</span>
+                            <span>😂 ${r.lol}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Init
+        renderMeme();
+    </script>
+</body>
+</html>

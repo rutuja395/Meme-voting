@@ -1,0 +1,13 @@
+{
+  "name": "meme-voting-game",
+  "version": "1.0.0",
+  "description": "Kahoot-style meme voting game",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo done"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.38.0",
+    "express": "4.21.2"
+  }
+}
